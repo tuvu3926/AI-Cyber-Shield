@@ -10,16 +10,28 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-import sqlite3
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 from feature_extractor import URLFeatureExtractor
 import warnings
-import threading
+
 
 warnings.filterwarnings("ignore")
+import os
 
+HISTORY_FILE = "scan_history.csv"
+
+if not os.path.exists(HISTORY_FILE):
+    pd.DataFrame(columns=[
+        "url",
+        "forest_result",
+        "forest_risk",
+        "bayes_result",
+        "bayes_risk",
+        "final_result",
+        "time"
+    ]).to_csv(HISTORY_FILE, index=False)
 # =========================
 # PAGE CONFIG
 # =========================
@@ -75,39 +87,6 @@ st.markdown("""
 # =========================
 # DATABASE
 # =========================
-conn = sqlite3.connect(
-    "scan_history.db",
-    check_same_thread=False,
-    timeout=30
-)
-
-# WAL MODE
-conn.execute("PRAGMA journal_mode=WAL;")
-conn.execute("PRAGMA synchronous=NORMAL;")
-
-db_lock = threading.Lock()
-
-c = conn.cursor()
-
-# =========================
-# CREATE TABLE
-# =========================
-with db_lock:
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        url TEXT,
-        forest_result TEXT,
-        forest_risk REAL,
-        bayes_result TEXT,
-        bayes_risk REAL,
-        final_result TEXT,
-        time TEXT
-    )
-    """)
-
-    conn.commit()
 
 # =========================
 # LOAD MODELS
@@ -255,33 +234,27 @@ if menu == "🔍 URL Scanner":
                 # =========================
                 # SAVE HISTORY
                 # =========================
-                with db_lock:
+                new_record = pd.DataFrame([{
+                    "url": url,
+                    "forest_result": rf_result,
+                    "forest_risk": round(rf_risk * 100, 2),
+                    "bayes_result": nb_result,
+                    "bayes_risk": round(nb_risk * 100, 2),
+                    "final_result": final_result,
+                    "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }])
 
-                    c.execute("""
-                    INSERT INTO history(
-                        url,
-                        forest_result,
-                        forest_risk,
-                        bayes_result,
-                        bayes_risk,
-                        final_result,
-                        time
-                    )
-                    VALUES(?,?,?,?,?,?,?)
-                    """, (
-                        url,
-                        rf_result,
-                        round(rf_risk * 100, 2),
-                        nb_result,
-                        round(nb_risk * 100, 2),
-                        final_result,
-                        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    ))
+                history = pd.read_csv(HISTORY_FILE)
 
-                    conn.commit()
+                history = pd.concat(
+                    [history, new_record],
+                    ignore_index=True
+                )
 
-                st.markdown("---")
-
+                history.to_csv(
+                    HISTORY_FILE,
+                    index=False
+                )
                 # ====================================================
                 # RESULTS
                 # ====================================================
@@ -411,11 +384,11 @@ elif menu == "📊 Analytics":
 
     st.title("📊 Dashboard Analytics")
 
-    with db_lock:
-        history = pd.read_sql(
-            "SELECT * FROM history",
-            conn
-        )
+    try:
+        history = pd.read_csv(HISTORY_FILE)
+    except Exception as e:
+        st.error(f"Database Error: {e}")
+        history = pd.DataFrame()
 
     if len(history) == 0:
         st.warning("No scan history available")
@@ -599,9 +572,21 @@ elif menu == "📑 Scan History":
         with c1:
             if st.button("✅ Yes, Delete All"):
 
-                with db_lock:
-                    c.execute("DELETE FROM history")
-                    conn.commit()
+                try:
+                    pd.DataFrame(columns=[
+                        "url",
+                        "forest_result",
+                        "forest_risk",
+                        "bayes_result",
+                        "bayes_risk",
+                        "final_result",
+                        "time"
+                    ]).to_csv(HISTORY_FILE, index=False)
+
+                    st.success("History cleared")
+
+                except Exception as e:
+                    st.error(f"Delete Error: {e}")
 
                 st.session_state.confirm_delete = False
 
@@ -622,11 +607,15 @@ elif menu == "📑 Scan History":
     # =========================
     # LOAD HISTORY
     # =========================
-    with db_lock:
-        history = pd.read_sql(
-            "SELECT * FROM history ORDER BY id DESC",
-            conn
-        )
+    try:
+        history = pd.read_csv(HISTORY_FILE)
+
+        if not history.empty:
+            history = history.iloc[::-1]
+
+    except Exception as e:
+        st.error(f"History Error: {e}")
+        history = pd.DataFrame()
 
     if len(history) == 0:
         st.info("No scan history available.")
@@ -712,7 +701,7 @@ elif menu == "ℹ️ About":
     ✅ Analytics Dashboard
     ✅ Model Performance CSV
     ✅ Scan History
-    ✅ SQLite Database
+    ✅ CSV History Storage
     ✅ Real-time Detection
 
     ## 👨‍💻 Technologies
@@ -722,5 +711,5 @@ elif menu == "ℹ️ About":
     - Scikit-learn
     - Plotly
     - Pandas
-    - SQLite
+    - CSV Storage
     """)
