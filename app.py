@@ -643,57 +643,44 @@ elif menu == "⚙️ Feature Info":
 
     st.title("⚙️ URL Feature Information")
 
-    feature_info = {
-        "having_IP_Address":
-            "Checks if URL uses IP address",
+    feature_data = [
+        ["having_IP_Address", "Checks if URL uses an IP address", "URL-Based"],
+        ["URL_Length", "Long URLs are suspicious", "URL-Based"],
+        ["Shortining_Service", "Detects URL shortening services", "URL-Based"],
+        ["having_At_Symbol", "Checks for '@' symbol", "URL-Based"],
+        ["double_slash_redirecting", "Detects suspicious redirects", "URL-Based"],
+        ["Prefix_Suffix", "Checks for '-' in domain", "Domain-Based"],
+        ["having_Sub_Domain", "Analyzes subdomain count", "Domain-Based"],
+        ["SSLfinal_State", "HTTPS validation", "Security"],
+        ["Domain_registeration_length", "Remaining domain registration period", "Domain-Based"],
+        ["HTTPS_token", "Detects fake HTTPS in domain", "Security"],
+        ["Abnormal_URL", "Abnormal URL detection", "URL-Based"],
+        ["port", "Checks non-standard ports", "Network"],
 
-        "URL_Length":
-            "Long URLs are suspicious",
+        ["Favicon", "External favicon detection", "HTML-Based"],
+        ["Request_URL", "External resource requests", "HTML-Based"],
+        ["URL_of_Anchor", "Unsafe anchor links", "HTML-Based"],
+        ["Links_in_tags", "External scripts/resources", "HTML-Based"],
+        ["SFH", "Form handler analysis", "HTML-Based"],
+        ["Submitting_to_email", "Form submits to email", "HTML-Based"],
+        ["Redirect", "Redirect chain analysis", "HTML-Based"],
+        ["on_mouseover", "Mouse-over script detection", "JavaScript"],
+        ["RightClick", "Right-click disabling detection", "JavaScript"],
+        ["popUpWindow", "Popup window detection", "JavaScript"],
+        ["Iframe", "Iframe detection", "HTML-Based"],
 
-        "Shortining_Service":
-            "Checks URL shortening services",
+        ["Links_pointing_to_page", "Backlink trust analysis", "Reputation"],
+        ["age_of_domain", "Domain age analysis", "Domain-Based"],
+        ["dns_record", "DNS record existence", "Network"],
+        ["web_traffic", "Website popularity", "Reputation"],
+        ["google_index", "Google indexing status", "Reputation"],
+        ["statistical_report", "Statistical reputation feature", "Reputation"]
+    ]
 
-        "having_At_Symbol":
-            "@ symbol detection",
-
-        "double_slash_redirecting":
-            "Checks redirecting",
-
-        "Prefix_Suffix":
-            "Hyphen in domain",
-
-        "having_Sub_Domain":
-            "Too many subdomains",
-
-        "SSLfinal_State":
-            "HTTPS validation",
-
-        "HTTPS_token":
-            "Fake HTTPS token",
-
-        "Abnormal_URL":
-            "Abnormal URL detection",
-
-        "Request_URL":
-            "External resource requests",
-
-        "URL_of_Anchor":
-            "Unsafe anchors",
-
-        "Links_in_tags":
-            "External scripts/resources",
-
-        "SFH":
-            "Form handler analysis",
-
-        "Iframe":
-            "Iframe detection"
-    }
-
-    info_df = pd.DataFrame({
-        "Feature": list(feature_info.keys()),
-        "Description": list(feature_info.values())
-    })
+    info_df = pd.DataFrame(
+        feature_data,
+        columns=["Feature", "Description", "Category"]
+    )
 
     st.dataframe(
         info_df,
